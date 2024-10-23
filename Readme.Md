@@ -25,9 +25,7 @@ Change the Shell option to /bin/bash.
 Change the Pass input option to "as arguments".
 Enter the Shell Script to Run Python: Enter the following shell script that will pass the selected text to your Python script:
 
-bash
-Copy code
-#!/bin/bash
+
 # Take the selected text and pass it as an argument to the Python script
 
 python3 /Users/gsingh/PycharmProjects/bbeditpython/bbedit.py "$1"
