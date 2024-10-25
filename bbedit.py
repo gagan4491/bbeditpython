@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import re
 import subprocess
 import argparse
@@ -14,7 +16,7 @@ def open_bbedit_with_sftp(selected_text):
         # print("Captured IP Address:", ip_address)
 
         # Step 3: Extract the file path (e.g., '/usr/local/bin')
-        file_path = match.group(3).strip().replace('~', '')
+        file_path = match.group(3).strip().replace('~/', '/root/')
         # print("Captured File Path:", file_path)
 
         # Step 4: Extract the file name (e.g., 'restartPostfix.sh')
