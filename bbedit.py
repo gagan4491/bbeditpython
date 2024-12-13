@@ -5,6 +5,30 @@ import subprocess
 import argparse
 
 
+def check_host_key(ip_address):
+    """
+    Check if the SSH connection succeeds or fails due to a host key issue.
+    """
+    ssh_check_command = [
+        "ssh",
+        "-o", "BatchMode=yes",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        ip_address, "exit"
+    ]
+    try:
+        # Run the SSH command to test the connection
+        subprocess.run(ssh_check_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        # If the error indicates a host key issue
+        if "Host key verification failed" in e.stderr.decode():
+            print(f"Host key verification failed for {ip_address}. Please check your SSH settings.")
+        else:
+            print(f"SSH connection to {ip_address} failed: {e.stderr.decode()}")
+        return False
+
+
 def open_bbedit_with_sftp(selected_text):
     # Regex to capture the parts needed from the selected text
     match = re.search(r'\[.*\(([\w\s]*([\d\.]+))\)\s+(.*?)]\s+(.*)', selected_text)
@@ -21,7 +45,9 @@ def open_bbedit_with_sftp(selected_text):
             print(f"Invalid IP address format: {ip_address}")
             return
 
-        # print(f"Captured IP Address: {ip_address}")
+        # Check host key and return if it fails
+        if not check_host_key(ip_address):
+            return
 
         # Step 3: Extract the file path (e.g., '/usr/local/bin')
         file_path = match.group(3).strip()
@@ -32,11 +58,8 @@ def open_bbedit_with_sftp(selected_text):
         elif file_path == '~':
             file_path = ''
 
-        # print(f"Captured File Path: {file_path}")
-
         # Step 4: Extract the file name (e.g., 'restartPostfix.sh')
         file_name = match.group(4).strip()
-        # print(f"Captured File Name: {file_name}")
 
         # Build the full path
         if file_path:
@@ -44,13 +67,8 @@ def open_bbedit_with_sftp(selected_text):
         else:
             full_path = file_name
 
-        # print(f"Full Path: {full_path}")
-
         # Build the SFTP URL
         sftp_url = f"sftp://{ip_address}/{full_path}"
-
-        # SSH command to access the server, you can modify or use it if needed
-        ssh_command = f"ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {ip_address}"
 
         # Execute the BBEdit command with the SFTP URL
         bbedit_command = ["/usr/local/bin/bbedit", sftp_url]
@@ -58,7 +76,6 @@ def open_bbedit_with_sftp(selected_text):
         try:
             subprocess.run(bbedit_command, check=True)
             print(" ")
-            # print("File opened in BBEdit successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Failed to open BBEdit: {e}")
 
@@ -77,8 +94,7 @@ if __name__ == "__main__":
         selected_text = args.selected_text
 
         # Cleaning up unwanted commands from the selected text
-        final = selected_text.replace('cd', '').replace('cat', '').replace('nano', '').replace('vi', '').replace('vim',
-                                                                                                                 '').strip()
+        final = re.sub(r'\b(cat|nano|sudo)\b', '', selected_text).strip()
 
         # Call the function with cleaned-up selected text
         open_bbedit_with_sftp(final)
